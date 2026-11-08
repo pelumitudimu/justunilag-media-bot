@@ -6,37 +6,36 @@
 <title>JustUNILAG Media — Members</title>
 <style>
 :root{font-family:Arial,sans-serif;color:#17233b;background:#f3f6fb}
-body{margin:0;padding:28px}.wrap{max-width:1050px;margin:auto}
+body{margin:0;padding:20px}.wrap{max-width:1050px;margin:auto}
 header{background:#102b55;color:white;padding:24px;border-radius:16px}
 h1{margin:0 0 8px}.muted{opacity:.8}.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:22px 0}
 .card{background:white;border-radius:14px;padding:18px;box-shadow:0 4px 18px #102b5510}
 .count{font-size:30px;font-weight:700}.btn{background:#1459a6;color:white;padding:11px 15px;border-radius:8px;text-decoration:none}
 table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden}
 th,td{text-align:left;padding:12px;border-bottom:1px solid #e8edf4;font-size:14px}
-th{background:#eaf0f8} .tablebox{overflow-x:auto}
+th{background:#eaf0f8}.tablebox{overflow-x:auto}
 small{color:#5b6880}
 </style>
 </head>
 <body><div class="wrap">
-<header><h1>JUSTUNILAG MEDIA</h1><div class="muted">Member registration dashboard</div></header>
+<header><h1>JUSTUNILAG MEDIA</h1><div class="muted">Private member registration dashboard</div></header>
 <div class="bar"><div class="card"><small>Total registered members</small><div class="count" id="total">—</div></div>
-<a class="btn" href="/admin/export.csv">Download members CSV</a></div>
+<a class="btn" href="/api/admin/export">Download members CSV</a></div>
 <div class="tablebox"><table><thead><tr><th>Registration ID</th><th>Phone</th><th>Name</th><th>Registered</th><th>Last message</th></tr></thead><tbody id="rows"><tr><td colspan="5">Loading…</td></tr></tbody></table></div>
-<p><small>Keep this dashboard private. Member phone numbers are personal information; only use them for the purpose people agreed to.</small></p>
+<p><small>Keep this dashboard private. Member phone numbers are personal information. Only use them for the purpose members agreed to.</small></p>
 </div>
 <script>
-fetch('/admin/members.json').then(r=>r.json()).then(data=>{
+fetch('/api/admin/members').then(r=>{if(!r.ok)throw new Error('Request failed');return r.json()}).then(data=>{
  document.getElementById('total').textContent=data.total;
- const rows=document.getElementById('rows');
- rows.innerHTML='';
+ const rows=document.getElementById('rows'); rows.innerHTML='';
  if(!data.members.length){rows.innerHTML='<tr><td colspan="5">No registrations yet.</td></tr>';return;}
  for(const m of data.members){
   const tr=document.createElement('tr');
-  [m.id,m.phone,m.name||'—',new Date(m.registeredAt).toLocaleString(),new Date(m.lastSeenAt).toLocaleString()].forEach(v=>{
+  [m.registration_id,m.phone,m.name||'—',new Date(m.registered_at).toLocaleString(),new Date(m.last_seen_at).toLocaleString()].forEach(v=>{
    const td=document.createElement('td');td.textContent=v;tr.appendChild(td);
   });
   rows.appendChild(tr);
  }
-}).catch(()=>document.getElementById('rows').innerHTML='<tr><td colspan="5">Could not load registrations.</td></tr>');
+}).catch(()=>document.getElementById('rows').innerHTML='<tr><td colspan="5">Could not load registrations. Check your admin login and database setup.</td></tr>');
 </script>
 </body></html>
