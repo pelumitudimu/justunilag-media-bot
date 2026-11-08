@@ -1,45 +1,66 @@
-# JustUNILAG Media Bot — starter project
+# JustUNILAG Media — WhatsApp registration bot (Vercel version)
 
-This is the first working backend for the JustUNILAG Media registration bot. It:
-- assigns sequential IDs such as `NIGERIA 001`;
-- recognises repeat phone numbers and keeps their original ID;
-- stores the WhatsApp number, profile name (if supplied), and timestamps;
-- sends a welcome/repeat-visitor reply to inbound text messages;
-- provides a password-protected member dashboard and CSV export.
+This repository contains a Vercel serverless version of the JustUNILAG Media WhatsApp registration bot. It is a **setup-ready codebase, not a live bot**. It is not connected to Meta, Vercel, or a database yet.
 
-## Important account note
+## How registration works
 
-This project uses Meta's **official WhatsApp Cloud API**. It does not automate or control the regular WhatsApp app or WhatsApp Web. A phone number must be onboarded to the WhatsApp Business Platform and meet Meta's current eligibility and migration requirements. Do not delete, migrate, or disconnect your second WhatsApp account until you have checked the current Meta onboarding flow and backed up anything important.
+- A person sends **JOIN** (or **REGISTER**) to the WhatsApp number.
+- Only then does the bot store their number as a member.
+- It assigns an ID such as `NIGERIA 001`.
+- The same phone number keeps its original ID on later JOIN messages.
+- Duplicate Meta webhook events are ignored.
+- The admin page is protected with HTTP Basic Authentication and can export a CSV.
 
-## Run locally
+A normal incoming message does not automatically enrol someone. Registration requires the person to send JOIN/REGISTER.
 
-Requires Node.js 20+.
+## Hosting and database
 
-1. Copy `.env.example` to `.env`.
-2. Set a unique `ADMIN_PASSWORD` of at least 12 characters.
-3. Install no packages — this starter uses Node's built-in modules.
-4. Run `npm start`.
-5. Visit `http://localhost:3000/health`.
-6. Visit `http://localhost:3000/admin` and sign in with the admin credentials.
+- Hosting: Vercel Node.js Functions.
+- Database: Supabase Postgres.
+- Member records are not stored in the Vercel filesystem.
+- The database schema and restricted permissions are in `supabase/schema.sql`.
 
-The local server cannot receive Meta webhooks until it is exposed through a secure public HTTPS URL.
+Supabase Free projects can pause after a week of inactivity. Check current plan limits and make sure the chosen account holder understands any billing or age requirements before creating a project.
 
-## Meta webhook configuration
+## Setup checklist
 
-After the number is properly onboarded to the WhatsApp Cloud API:
+1. Create a Supabase project with an eligible account holder.
+2. In Supabase SQL Editor, run the complete contents of `supabase/schema.sql`.
+3. In Supabase project settings, copy the project URL and the server-side service-role/secret key. Keep the key private.
+4. Import this GitHub repository into Vercel and deploy.
+5. In Vercel Project Settings → Environment Variables, add:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `VERIFY_TOKEN` — a long random value you create privately
+   - `META_APP_SECRET`
+   - `WHATSAPP_TOKEN`
+   - `PHONE_NUMBER_ID`
+   - `WHATSAPP_API_VERSION` (optional; defaults to `v23.0`)
+   - `ADMIN_USER`
+   - `ADMIN_PASSWORD` — use a unique password of at least 16 characters
+6. Redeploy after adding or changing environment variables.
+7. The Meta webhook callback URL will be `https://YOUR-VERCEL-DOMAIN/api/webhook`. Enter the same private verification token in Meta and subscribe the WhatsApp Business Account to the `messages` field.
+8. Test with a separate test number before considering any migration of the dedicated number.
 
-- Set the webhook callback URL to `https://YOUR_DOMAIN/webhook`.
-- Set the Verify Token to the exact `VERIFY_TOKEN` in `.env`.
-- Subscribe the WhatsApp Business Account webhook to the `messages` field.
-- Set `WHATSAPP_TOKEN`, `PHONE_NUMBER_ID`, and `WHATSAPP_API_VERSION` in the hosting environment.
-- Keep tokens and passwords private. Never paste them into a public repository or chat.
+## Routes
 
-The app handles inbound text messages only. It does not send marketing broadcasts, scrape groups, or message people who have not contacted the number. Replies should follow Meta's current messaging-window and template rules.
+- `GET /api/health` — health check.
+- `GET /api/webhook` — Meta webhook verification.
+- `POST /api/webhook` — signed Meta webhook events.
+- `/admin` — private dashboard.
+- `GET /api/admin/members` — authenticated member list.
+- `GET /api/admin/export` — authenticated CSV export.
 
-## Storage and next production steps
+## Security and privacy
 
-For this starter, member records are stored in `data/members.json`. Back up this file securely. Before production use, add a persistent database (for example PostgreSQL), webhook signature validation using the Meta app secret, rate limiting, robust event de-duplication, logging/monitoring, HTTPS hosting, and a documented privacy/consent notice. Protect exports because they contain personal phone numbers.
+- Never commit environment variables, access tokens, database keys, passwords, or member data.
+- The Supabase service-role key bypasses Row Level Security. It belongs only in Vercel server-side environment variables, never in browser code.
+- The database enables Row Level Security and revokes access for public client roles.
+- Webhook POST requests are checked with Meta's `X-Hub-Signature-256` using `META_APP_SECRET`.
+- Members' phone numbers are personal information. Publish a short privacy notice before inviting people to register, collect only what is needed, restrict dashboard access, and establish a retention/deletion process.
+- Registration is not permission for promotional broadcasts. Message only people who have explicitly opted in, and follow Meta's current messaging-window and template rules.
+- Do not migrate or disconnect the existing WhatsApp account until Meta's current onboarding requirements are checked and a backup is made.
 
-## Test the ID logic
+## Important
 
-You can test registration without WhatsApp by sending a POST webhook payload only after you have configured a local test harness, or by calling `getOrCreateMember` from a small Node test. Do not expose a public unauthenticated test-registration endpoint.
+This code still needs a full end-to-end test in the actual Vercel, Supabase, and Meta environments before it is used with real members. Do not invite people to register yet.
