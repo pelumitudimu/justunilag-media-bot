@@ -1,0 +1,9 @@
+{
+  "name": "justunilag-media-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WhatsApp Cloud API registration bot for JustUNILAG Media",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "dev": "node --watch server.js" },
+  "engines": { "node": ">=20" }
+}
